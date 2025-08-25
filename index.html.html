@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyTelkomsel Everyday: Interactive Strategy</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals (Slate, Zinc) with a Red Accent -->
+    <!-- Application Structure Plan: The SPA is designed as a narrative-driven dashboard. It guides the user from the core problem to the solution and its impact. The structure is thematic: 1. The Challenge (a visual dashboard of current KPIs), 2. The Solution (an interactive tabbed view of the 3 pillars), 3. The Impact (a dynamic chart showing projected KPI improvements), and 4. The Roadmap (a visual timeline). This non-linear, section-based approach was chosen over a simple document scroll to allow users to quickly grasp the key strategic components and explore areas of interest, making the dense report information more digestible and engaging. -->
+    <!-- Visualization & Content Choices: 
+        - MAU/DAU Gap: Goal=Inform/Compare -> Viz=Doughnut Chart (Gauge style) -> Interaction=Hover for details -> Justification=Clearly visualizes the gap between current state and target -> Library=Chart.js.
+        - Leaky Bucket: Goal=Inform -> Viz=Doughnut Chart -> Interaction=Hover for breakdown -> Justification=Effectively shows the proportion of inconsistent vs. consistent users -> Library=Chart.js.
+        - 3 Pillars: Goal=Organize/Inform -> Viz=Tabbed Interface with Cards -> Interaction=Click to switch pillars -> Justification=Organizes a large amount of text into clean, manageable sections -> Library=HTML/CSS/JS.
+        - KPI Projections: Goal=Show Change -> Viz=Combined Bar/Line Chart -> Interaction=Buttons to toggle datasets -> Justification=Dynamically compares growth and retention metrics over time -> Library=Chart.js.
+        - Roadmap: Goal=Organize -> Viz=Horizontal Timeline -> Interaction=Click for milestone details -> Justification=Provides a clear, chronological view of the implementation plan -> Library=HTML/CSS/JS.
+        - Risk Matrix: Goal=Organize -> Viz=Styled Table -> Interaction=None (static display) -> Justification=Presents complex risk data in a structured, easy-to-read format -> Library=HTML/CSS. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* slate-50 */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 200px;
+            max-height: 250px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 250px;
+                max-height: 300px;
+            }
+        }
+        .tab-active {
+            border-color: #ef4444; /* red-500 */
+            color: #ef4444;
+            font-weight: 600;
+        }
+        .timeline-dot {
+            transition: transform 0.2s ease-in-out;
+        }
+        .timeline-dot:hover {
+            transform: scale(1.5);
+        }
+    </style>
+</head>
+<body class="text-slate-700">
+
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <span class="text-xl font-bold text-red-600">MyTelkomsel</span>
+                    <span class="ml-2 text-xl font-light text-slate-600">Everyday</span>
+                </div>
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="#challenge" class="text-slate-600 hover:text-red-600 transition-colors">The Challenge</a>
+                    <a href="#solution" class="text-slate-600 hover:text-red-600 transition-colors">The Solution</a>
+                    <a href="#impact" class="text-slate-600 hover:text-red-600 transition-colors">The Impact</a>
+                    <a href="#roadmap" class="text-slate-600 hover:text-red-600 transition-colors">The Roadmap</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+
+        <section id="hero" class="text-center mb-16">
+            <h1 class="text-4xl md:text-5xl font-bold text-slate-800 mb-4">A Strategic Blueprint for Sustainable Growth</h1>
+            <p class="max-w-3xl mx-auto text-lg text-slate-600">
+                MyTelkomsel faces a critical challenge: a large but inconsistent user base. This interactive report outlines the 'MyTelkomsel Everyday' initiative, a three-pillar strategy to transform the app from a simple utility into an indispensable daily companion.
+            </p>
+        </section>
+
+        <section id="challenge" class="mb-16 scroll-mt-20">
+            <h2 class="text-3xl font-bold text-center text-slate-800 mb-2">The Core Challenge: A "Leaky Bucket"</h2>
+            <p class="text-center text-slate-600 mb-12 max-w-2xl mx-auto">Despite a large user base, daily engagement is stagnant and a significant portion of users are inconsistent or lapse monthly. The goal is to bridge the gap and foster daily habits.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="bg-white p-6 rounded-xl shadow-md flex flex-col items-center">
+                    <h3 class="text-xl font-semibold text-slate-800 mb-4">Daily Active Users (DAU)</h3>
+                    <div class="chart-container">
+                        <canvas id="dauChart"></canvas>
+                    </div>
+                    <p class="text-center text-slate-600 mt-4">The DAU has plateaued, requiring a <span class="font-bold text-red-600">+28%</span> uplift to meet the year-end target of 20 million.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-md flex flex-col items-center">
+                    <h3 class="text-xl font-semibold text-slate-800 mb-4">Monthly Active Users (MAU)</h3>
+                    <div class="chart-container">
+                        <canvas id="mauChart"></canvas>
+                    </div>
+                    <p class="text-center text-slate-600 mt-4">While MAU is growing, the base is unstable. The target is to solidify growth and reach 80 million users.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-md flex flex-col items-center">
+                    <h3 class="text-xl font-semibold text-slate-800 mb-4">The "Leaky Bucket"</h3>
+                    <div class="chart-container">
+                        <canvas id="leakyBucketChart"></canvas>
+                    </div>
+                    <p class="text-center text-slate-600 mt-4"><span class="font-bold text-slate-800">21.3%</span> of users are inconsistent, and ~<span class="font-bold text-slate-800">10%</span> lapse monthly, indicating a weak emotional connection to the app.</p>
+                </div>
+            </div>
+        </section>
+        
+        <section id="solution" class="mb-16 scroll-mt-20">
+            <h2 class="text-3xl font-bold text-center text-slate-800 mb-2">The 'MyTelkomsel Everyday' Initiative</h2>
+            <p class="text-center text-slate-600 mb-12 max-w-2xl mx-auto">A synergistic three-pillar solution to reshape the user experience, making it more personal, rewarding, and communal. Click through the pillars to explore the key initiatives.</p>
+            
+            <div class="bg-white rounded-xl shadow-md p-6 md:p-8">
+                <div class="border-b border-slate-200 mb-6">
+                    <nav class="-mb-px flex space-x-6" id="solutionTabs">
+                        <button data-tab="pillar1" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-slate-500 hover:border-slate-300 hover:text-slate-700 tab-active">
+                            Pillar 1: AI Personalization
+                        </button>
+                        <button data-tab="pillar2" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-slate-500 hover:border-slate-300 hover:text-slate-700">
+                            Pillar 2: Gamified Loyalty
+                        </button>
+                        <button data-tab="pillar3" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-slate-500 hover:border-slate-300 hover:text-slate-700">
+                            Pillar 3: Community & UGC
+                        </button>
+                    </nav>
+                </div>
+
+                <div id="pillar1" class="tab-content">
+                    <h3 class="text-2xl font-bold text-slate-800 mb-1">"For You, Every Day"</h3>
+                    <p class="text-slate-600 mb-6">Shift from a generic portal to a hyper-personalized interface that anticipates user needs and makes every interaction relevant, timely, and effortless.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-slate-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-slate-800">Dynamic, AI-Driven Homepage</h4>
+                            <p class="text-sm text-slate-600">A personalized feed that adapts based on user behavior, location, and time of day, surfacing the most relevant content and offers automatically.</p>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-slate-800">Predictive & Proactive Offers</h4>
+                            <p class="text-sm text-slate-600">Analyze usage patterns to predict needs, pushing personalized data packages *before* a user runs out, improving experience and conversion.</p>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-slate-800">Upgraded "Veronika" Assistant</h4>
+                            <p class="text-sm text-slate-600">Evolve the chatbot into a true agentic AI that can understand complex commands and execute multi-step tasks seamlessly.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="pillar2" class="tab-content hidden">
+                    <h3 class="text-2xl font-bold text-slate-800 mb-1">'Telkomsel Quests' Ecosystem</h3>
+                    <p class="text-slate-600 mb-6">Systematically build daily habits by applying proven game mechanics, turning every interaction into an act of progress toward a tangible reward.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div class="bg-slate-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-slate-800">Daily Check-in & Streaks</h4>
+                            <p class="text-sm text-slate-600">A low-friction mechanic to create a daily trigger, rewarding users for simply opening the app, with bonuses for consistency.</p>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-slate-800">Tiered Quest System</h4>
+                            <p class="text-sm text-slate-600">Daily, weekly, and monthly quests that guide users to explore the full app ecosystem, from entertainment to lifestyle partners.</p>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-slate-800">Revamped Tiered Loyalty</h4>
+                            <p class="text-sm text-slate-600">A visible, aspirational tier system (Bronze, Silver, Gold) with exclusive benefits, making loyalty a tangible status symbol.</p>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-slate-800">Interactive Progress Visuals</h4>
+                            <p class="text-sm text-slate-600">Engaging progress bars and animations to enhance motivation and provide a satisfying sense of accomplishment.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="pillar3" class="tab-content hidden">
+                    <h3 class="text-2xl font-bold text-slate-800 mb-1">'MyTsel Stories' Community Hub</h3>
+                    <p class="text-slate-600 mb-6">Build a vibrant in-app community that drives organic engagement, provides powerful social proof, and forges a deep emotional bond with the brand.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-slate-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-slate-800">#MyTselEveryday UGC Campaign</h4>
+                            <p class="text-sm text-slate-600">Recurring, themed contests (e.g., #MyTselTravel) that encourage users to share their experiences, generating authentic, on-brand content.</p>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-slate-800">In-App Community Hub</h4>
+                            <p class="text-sm text-slate-600">A dedicated tab to showcase user submissions where others can browse, vote, and comment, creating a compelling reason to return daily.</p>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-slate-800">Integrated Reviews & Testimonials</h4>
+                            <p class="text-sm text-slate-600">Incentivize users to review services and partners, building trust and providing invaluable real-time feedback on the ecosystem.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="impact" class="mb-16 scroll-mt-20">
+            <h2 class="text-3xl font-bold text-center text-slate-800 mb-2">Projected Business Impact</h2>
+            <p class="text-center text-slate-600 mb-12 max-w-2xl mx-auto">The three pillars work together to drive substantial improvements across all key metrics. Use the toggles to explore the projected impact on growth and retention over the implementation timeline.</p>
+            <div class="bg-white rounded-xl shadow-md p-6 md:p-8">
+                <div class="flex justify-center space-x-4 mb-6">
+                    <button id="showGrowthBtn" class="px-4 py-2 text-sm font-medium rounded-md bg-red-600 text-white">Growth Metrics (DAU/MAU)</button>
+                    <button id="showRetentionBtn" class="px-4 py-2 text-sm font-medium rounded-md bg-slate-200 text-slate-700">Retention Metrics (Churn)</button>
+                </div>
+                <div class="w-full h-[40vh] max-h-[500px] mx-auto">
+                    <canvas id="impactChart"></canvas>
+                </div>
+            </div>
+        </section>
+        
+        <section id="roadmap" class="scroll-mt-20">
+            <h2 class="text-3xl font-bold text-center text-slate-800 mb-2">Implementation Roadmap</h2>
+            <p class="text-center text-slate-600 mb-12 max-w-2xl mx-auto">A phased rollout to manage risk, build momentum with quick wins, and optimize based on user feedback. Click on the dots for more details.</p>
+            <div class="relative w-full">
+                <div class="absolute left-1/2 top-0 bottom-0 w-0.5 bg-slate-300"></div>
+                <div class="relative flex flex-col items-center">
+                    <div class="w-full flex justify-center items-center mb-12">
+                        <div class="w-5/12 text-right pr-8">
+                            <h3 class="text-lg font-semibold text-red-600">Phase 1: Q1</h3>
+                            <p class="text-slate-600">Foundation & Quick Wins</p>
+                        </div>
+                        <div class="w-10 h-10 bg-red-600 rounded-full z-10 flex items-center justify-center">
+                            <div class="w-4 h-4 bg-white rounded-full"></div>
+                        </div>
+                        <div class="w-5/12 pl-8">
+                            <ul class="list-disc list-inside text-slate-600 space-y-1">
+                                <li><span class="timeline-dot cursor-pointer" data-info="Weeks 1-6: Develop and deploy the Daily Check-in and Streaks feature.">Daily Check-in & Streaks</span></li>
+                                <li><span class="timeline-dot cursor-pointer" data-info="Weeks 4-8: Plan and launch the first #MyTselEveryday UGC Campaign.">Launch First UGC Campaign</span></li>
+                                <li><span class="timeline-dot cursor-pointer" data-info="Weeks 1-12: Begin foundational development for the core AI personalization model.">Begin AI Model Development</span></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="w-full flex justify-center items-center mb-12">
+                        <div class="w-5/12 text-right pr-8">
+                            <ul class="list-disc list-inside text-slate-600 space-y-1 text-right">
+                                <li><span class="timeline-dot cursor-pointer" data-info="Weeks 13-20: Full development and rollout of the Tiered 'Telkomsel Quests' System.">Rollout Tiered Quests</span></li>
+                                <li><span class="timeline-dot cursor-pointer" data-info="Weeks 16-24: Launch Version 1.0 of the in-app Community Hub.">Launch Community Hub V1</span></li>
+                                <li><span class="timeline-dot cursor-pointer" data-info="Weeks 20-26: Begin a closed beta test of the AI-driven dynamic homepage.">Beta Test AI Homepage</span></li>
+                            </ul>
+                        </div>
+                        <div class="w-10 h-10 bg-red-600 rounded-full z-10 flex items-center justify-center">
+                            <div class="w-4 h-4 bg-white rounded-full"></div>
+                        </div>
+                        <div class="w-5/12 pl-8">
+                            <h3 class="text-lg font-semibold text-red-600">Phase 2: Q2</h3>
+                            <p class="text-slate-600">Build & Engage</p>
+                        </div>
+                    </div>
+                    <div class="w-full flex justify-center items-center">
+                        <div class="w-5/12 text-right pr-8">
+                            <h3 class="text-lg font-semibold text-red-600">Phase 3: Q3/Q4</h3>
+                            <p class="text-slate-600">Scale & Optimize</p>
+                        </div>
+                        <div class="w-10 h-10 bg-red-600 rounded-full z-10 flex items-center justify-center">
+                            <div class="w-4 h-4 bg-white rounded-full"></div>
+                        </div>
+                        <div class="w-5/12 pl-8">
+                            <ul class="list-disc list-inside text-slate-600 space-y-1">
+                                <li><span class="timeline-dot cursor-pointer" data-info="Weeks 27-32: Full public rollout of the AI-driven dynamic homepage to all users.">Full AI Homepage Rollout</span></li>
+                                <li><span class="timeline-dot cursor-pointer" data-info="Weeks 33 onwards: Introduce advanced loyalty tiers and exclusive benefits.">Introduce Advanced Loyalty Tiers</span></li>
+                                <li><span class="timeline-dot cursor-pointer" data-info="Ongoing: Utilize data to continuously refine and A/B test all new features.">Continuous Optimization</span></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="timeline-info-box" class="mt-8 text-center bg-white p-4 rounded-lg shadow-md text-slate-700 font-medium hidden">
+                Click on a timeline dot to see more details.
+            </div>
+        </section>
+
+    </main>
+    
+    <footer class="bg-slate-800 text-white mt-16">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-sm">
+            <p>&copy; 2025 MyTelkomsel Strategic Proposal. For illustrative purposes only.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const createGaugeChart = (ctx, label, value, target, color) => {
+                const percentage = (value / target) * 100;
+                return new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: [label, 'Remaining'],
+                        datasets: [{
+                            data: [value, target - value],
+                            backgroundColor: [color, '#e2e8f0'],
+                            borderColor: ['#ffffff'],
+                            borderWidth: 2,
+                            circumference: 180,
+                            rotation: 270,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: (context) => `${context.label}: ${context.raw.toLocaleString()} M`
+                                }
+                            }
+                        },
+                        cutout: '70%',
+                    },
+                    plugins: [{
+                        id: 'gaugeText',
+                        beforeDraw: (chart) => {
+                            const { width, height, ctx } = chart;
+                            ctx.restore();
+                            const fontSize = (height / 114).toFixed(2);
+                            ctx.font = `bold ${fontSize}rem Inter`;
+                            ctx.textBaseline = 'middle';
+                            const text = `${value} M`;
+                            const textX = Math.round((width - ctx.measureText(text).width) / 2);
+                            const textY = height / 1.5;
+                            ctx.fillStyle = '#1e293b';
+                            ctx.fillText(text, textX, textY);
+                            
+                            const targetText = `Target: ${target} M`;
+                            const targetFontSize = (height / 180).toFixed(2);
+                            ctx.font = `${targetFontSize}rem Inter`;
+                            const targetTextX = Math.round((width - ctx.measureText(targetText).width) / 2);
+                            const targetTextY = height / 1.1;
+                            ctx.fillStyle = '#64748b';
+                            ctx.fillText(targetText, targetTextX, targetTextY);
+                            ctx.save();
+                        }
+                    }]
+                });
+            };
+
+            const dauCtx = document.getElementById('dauChart').getContext('2d');
+            createGaugeChart(dauCtx, 'Current DAU', 15, 20, '#ef4444');
+
+            const mauCtx = document.getElementById('mauChart').getContext('2d');
+            createGaugeChart(mauCtx, 'Current MAU', 70, 80, '#f97316');
+
+            const leakyBucketCtx = document.getElementById('leakyBucketChart').getContext('2d');
+            new Chart(leakyBucketCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Consistent MAU', 'Inconsistent MAU', 'Monthly Lapsers (Conceptual)'],
+                    datasets: [{
+                        data: [55.3, 15.0, 7],
+                        backgroundColor: ['#22c55e', '#f59e0b', '#ef4444'],
+                        borderColor: '#ffffff',
+                        borderWidth: 2,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                font: { size: 10 }
+                            }
+                        },
+                        tooltip: {
+                             callbacks: {
+                                label: (context) => `${context.label}: ${context.raw.toLocaleString()} M`
+                            }
+                        }
+                    },
+                    cutout: '50%',
+                }
+            });
+
+            const solutionTabs = document.getElementById('solutionTabs');
+            const tabButtons = solutionTabs.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            solutionTabs.addEventListener('click', (e) => {
+                if (e.target.classList.contains('tab-button')) {
+                    const tabId = e.target.dataset.tab;
+
+                    tabButtons.forEach(btn => {
+                        btn.classList.remove('tab-active');
+                    });
+                    e.target.classList.add('tab-active');
+
+                    tabContents.forEach(content => {
+                        if (content.id === tabId) {
+                            content.classList.remove('hidden');
+                        } else {
+                            content.classList.add('hidden');
+                        }
+                    });
+                }
+            });
+            
+            const impactCtx = document.getElementById('impactChart').getContext('2d');
+            const impactData = {
+                labels: ['Current', 'Phase 1', 'Phase 2', 'Phase 3'],
+                datasets: {
+                    growth: [
+                        {
+                            label: 'DAU (Millions)',
+                            data: [15, 16, 18, 20],
+                            backgroundColor: '#ef4444',
+                            yAxisID: 'y',
+                            type: 'bar',
+                            order: 1
+                        },
+                        {
+                            label: 'MAU (Millions)',
+                            data: [70, 73, 77, 80],
+                            backgroundColor: '#f97316',
+                            yAxisID: 'y',
+                            type: 'bar',
+                            order: 1
+                        }
+                    ],
+                    retention: [
+                        {
+                            label: 'Lapser Rate (%)',
+                            data: [10, 9, 8, 7.5],
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'transparent',
+                            yAxisID: 'y1',
+                            type: 'line',
+                            order: 0,
+                            tension: 0.3
+                        },
+                        {
+                            label: 'Inconsistent MAU (%)',
+                            data: [21.3, 19, 16, 14],
+                            borderColor: '#10b981',
+                            backgroundColor: 'transparent',
+                            yAxisID: 'y1',
+                            type: 'line',
+                            order: 0,
+                            tension: 0.3
+                        }
+                    ]
+                }
+            };
+
+            const impactChart = new Chart(impactCtx, {
+                type: 'bar',
+                data: {
+                    labels: impactData.labels,
+                    datasets: impactData.datasets.growth
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    stacked: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Projected Growth Metrics (DAU & MAU)'
+                        },
+                        legend: {
+                            position: 'bottom'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Users (Millions)'
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: false,
+                            position: 'right',
+                            grid: {
+                                drawOnChartArea: false,
+                            },
+                            title: {
+                                display: true,
+                                text: 'Percentage (%)'
+                            }
+                        },
+                    },
+                }
+            });
+
+            const showGrowthBtn = document.getElementById('showGrowthBtn');
+            const showRetentionBtn = document.getElementById('showRetentionBtn');
+
+            showGrowthBtn.addEventListener('click', () => {
+                impactChart.data.datasets = impactData.datasets.growth;
+                impactChart.options.plugins.title.text = 'Projected Growth Metrics (DAU & MAU)';
+                impactChart.options.scales.y.display = true;
+                impactChart.options.scales.y1.display = false;
+                impactChart.update();
+                showGrowthBtn.classList.replace('bg-slate-200', 'bg-red-600');
+                showGrowthBtn.classList.replace('text-slate-700', 'text-white');
+                showRetentionBtn.classList.replace('bg-red-600', 'bg-slate-200');
+                showRetentionBtn.classList.replace('text-white', 'text-slate-700');
+            });
+
+            showRetentionBtn.addEventListener('click', () => {
+                impactChart.data.datasets = impactData.datasets.retention;
+                impactChart.options.plugins.title.text = 'Projected Retention Metrics (Churn Reduction)';
+                impactChart.options.scales.y.display = false;
+                impactChart.options.scales.y1.display = true;
+                impactChart.update();
+                showRetentionBtn.classList.replace('bg-slate-200', 'bg-red-600');
+                showRetentionBtn.classList.replace('text-slate-700', 'text-white');
+                showGrowthBtn.classList.replace('bg-red-600', 'bg-slate-200');
+                showGrowthBtn.classList.replace('text-white', 'text-slate-700');
+            });
+            
+            const timelineDots = document.querySelectorAll('.timeline-dot');
+            const timelineInfoBox = document.getElementById('timeline-info-box');
+
+            timelineDots.forEach(dot => {
+                dot.addEventListener('click', () => {
+                    const info = dot.dataset.info;
+                    timelineInfoBox.textContent = info;
+                    timelineInfoBox.classList.remove('hidden');
+                });
+            });
+        });
+    </script>
+</body>
+</html>
